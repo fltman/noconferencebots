@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoConference - Configuration</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .config-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 40px;
+            background: var(--bg-medium);
+            border-radius: 12px;
+        }
+
+        .config-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--bg-light);
+            border-radius: 8px;
+        }
+
+        .config-section h2 {
+            margin-bottom: 15px;
+            color: var(--accent-color);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: monospace;
+        }
+
+        .bot-config {
+            background: var(--bg-dark);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .bot-config h4 {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .status-success {
+            background: rgba(22, 163, 74, 0.2);
+            border: 1px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .status-error {
+            background: rgba(220, 38, 38, 0.2);
+            border: 1px solid var(--danger-color);
+            color: var(--danger-color);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            background: var(--bg-dark);
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="config-container">
+            <h1>⚙️ NoConference Configuration</h1>
+
+            <div id="status-message"></div>
+
+            <!-- API Configuration -->
+            <div class="config-section">
+                <h2>🔑 OpenRouter API Settings</h2>
+
+                <div class="form-group">
+                    <label for="api-key">API Key</label>
+                    <input type="password" id="api-key" placeholder="sk-or-v1-...">
+                    <small style="color: var(--text-secondary); display: block; margin-top: 5px;">
+                        Get your key at <a href="https://openrouter.ai/keys" target="_blank" style="color: var(--accent-color);">openrouter.ai/keys</a>
+                    </small>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="saveApiKey()">Save API Key</button>
+                    <button class="btn-secondary" onclick="testConnection()">Test Connection</button>
+                    <button class="btn-secondary" onclick="clearApiKey()">Clear Key</button>
+                </div>
+
+                <div id="test-result"></div>
+            </div>
+
+            <!-- Bot Configuration -->
+            <div class="config-section">
+                <h2>🤖 Bot Configuration</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 15px;">
+                    Customize each bot's model and personality. Available models:
+                    <code style="background: var(--bg-dark); padding: 2px 6px; border-radius: 3px;">anthropic/claude-3.5-sonnet</code>,
+                    <code style="background: var(--bg-dark); padding: 2px 6px; border-radius: 3px;">openai/gpt-4-turbo</code>,
+                    <code style="background: var(--bg-dark); padding: 2px 6px; border-radius: 3px;">google/gemini-pro</code>,
+                    <code style="background: var(--bg-dark); padding: 2px 6px; border-radius: 3px;">meta-llama/llama-3.1-70b-instruct</code>
+                </p>
+
+                <div id="bot-configs"></div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="saveBotConfigs()">Save Bot Configurations</button>
+                    <button class="btn-secondary" onclick="resetBotConfigs()">Reset to Defaults</button>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="config-section">
+                <h2>🚀 Quick Actions</h2>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="goToApp()">Launch NoConference</button>
+                    <button class="btn-secondary" onclick="exportConfig()">Export Configuration</button>
+                    <button class="btn-secondary" onclick="document.getElementById('import-file').click()">Import Configuration</button>
+                    <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importConfig(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const defaultBots = [
+            {
+                id: 'bot1',
+                name: 'Analyzer',
+                avatar: '🔍',
+                model: 'anthropic/claude-sonnet-4.5',
+                systemPrompt: 'You are an analytical thinker who breaks down complex topics into their core components. You ask probing questions and seek to understand underlying mechanisms.'
+            },
+            {
+                id: 'bot2',
+                name: 'Optimist',
+                avatar: '🌟',
+                model: 'google/gemini-2.5-flash',
+                systemPrompt: 'You are an optimistic innovator who sees opportunities and potential in every discussion. You build on ideas and suggest creative solutions.'
+            },
+            {
+                id: 'bot3',
+                name: 'Skeptic',
+                avatar: '🤔',
+                model: 'x-ai/grok-4-fast',
+                systemPrompt: 'You are a critical thinker who challenges assumptions and identifies potential problems. You ask "what if" questions and consider edge cases.'
+            },
+            {
+                id: 'bot4',
+                name: 'Pragmatist',
+                avatar: '⚙️',
+                model: 'anthropic/claude-sonnet-4.5',
+                systemPrompt: 'You are a practical thinker focused on implementation and real-world applicability. You consider resources, constraints, and actionable steps.'
+            },
+            {
+                id: 'bot5',
+                name: 'Synthesizer',
+                avatar: '🧩',
+                model: 'google/gemini-2.5-flash',
+                systemPrompt: 'You are skilled at finding connections between ideas and synthesizing different perspectives into coherent insights. You bridge viewpoints.'
+            },
+            {
+                id: 'bot6',
+                name: 'Visionary',
+                avatar: '🚀',
+                model: 'x-ai/grok-4-fast',
+                systemPrompt: 'You think about future implications and long-term consequences. You imagine possibilities beyond the immediate scope of the discussion.'
+            }
+        ];
+
+        function loadConfig() {
+            const apiKey = localStorage.getItem('openrouter_api_key') || '';
+            document.getElementById('api-key').value = apiKey;
+
+            const savedBots = localStorage.getItem('bot_configs');
+            const bots = savedBots ? JSON.parse(savedBots) : defaultBots;
+
+            renderBotConfigs(bots);
+        }
+
+        function renderBotConfigs(bots) {
+            const container = document.getElementById('bot-configs');
+            container.innerHTML = bots.map(bot => `
+                <div class="bot-config">
+                    <h4><span>${bot.avatar}</span> ${bot.name}</h4>
+                    <div class="form-group">
+                        <label>Model</label>
+                        <input type="text"
+                               id="${bot.id}-model"
+                               value="${bot.model}"
+                               placeholder="e.g., anthropic/claude-3.5-sonnet">
+                    </div>
+                    <div class="form-group">
+                        <label>System Prompt</label>
+                        <textarea id="${bot.id}-prompt">${bot.systemPrompt}</textarea>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function saveApiKey() {
+            const apiKey = document.getElementById('api-key').value.trim();
+            if (apiKey) {
+                localStorage.setItem('openrouter_api_key', apiKey);
+                showStatus('API key saved successfully!', 'success');
+            } else {
+                showStatus('Please enter an API key', 'error');
+            }
+        }
+
+        function clearApiKey() {
+            if (confirm('Are you sure you want to clear your API key?')) {
+                localStorage.removeItem('openrouter_api_key');
+                document.getElementById('api-key').value = '';
+                showStatus('API key cleared', 'success');
+            }
+        }
+
+        async function testConnection() {
+            const apiKey = document.getElementById('api-key').value.trim();
+            if (!apiKey) {
+                showStatus('Please enter an API key first', 'error');
+                return;
+            }
+
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.innerHTML = 'Testing connection...';
+
+            try {
+                const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': window.location.href,
+                        'X-Title': 'NoConference Config Test'
+                    },
+                    body: JSON.stringify({
+                        model: 'anthropic/claude-3.5-sonnet',
+                        messages: [
+                            { role: 'user', content: 'Say "Connection successful!" and nothing else.' }
+                        ],
+                        max_tokens: 50
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `✅ Success!\n\nResponse: ${data.choices[0].message.content}`;
+                    resultDiv.style.color = 'var(--success-color)';
+                    showStatus('Connection test successful!', 'success');
+                } else {
+                    resultDiv.innerHTML = `❌ Error: ${response.status}\n\n${JSON.stringify(data, null, 2)}`;
+                    resultDiv.style.color = 'var(--danger-color)';
+                    showStatus(`Connection test failed: ${data.error?.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `❌ Network Error:\n\n${error.message}`;
+                resultDiv.style.color = 'var(--danger-color)';
+                showStatus('Connection test failed: ' + error.message, 'error');
+            }
+        }
+
+        function saveBotConfigs() {
+            const savedBots = localStorage.getItem('bot_configs');
+            const bots = savedBots ? JSON.parse(savedBots) : defaultBots;
+
+            const updatedBots = bots.map(bot => ({
+                ...bot,
+                model: document.getElementById(`${bot.id}-model`).value,
+                systemPrompt: document.getElementById(`${bot.id}-prompt`).value
+            }));
+
+            localStorage.setItem('bot_configs', JSON.stringify(updatedBots));
+            showStatus('Bot configurations saved!', 'success');
+        }
+
+        function resetBotConfigs() {
+            if (confirm('Reset all bot configurations to defaults?')) {
+                localStorage.setItem('bot_configs', JSON.stringify(defaultBots));
+                renderBotConfigs(defaultBots);
+                showStatus('Bot configurations reset to defaults', 'success');
+            }
+        }
+
+        function exportConfig() {
+            const config = {
+                apiKey: localStorage.getItem('openrouter_api_key') || '',
+                bots: JSON.parse(localStorage.getItem('bot_configs') || JSON.stringify(defaultBots))
+            };
+
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `noconference-config-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showStatus('Configuration exported!', 'success');
+        }
+
+        function importConfig(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const config = JSON.parse(e.target.result);
+
+                    if (config.apiKey) {
+                        localStorage.setItem('openrouter_api_key', config.apiKey);
+                        document.getElementById('api-key').value = config.apiKey;
+                    }
+
+                    if (config.bots) {
+                        localStorage.setItem('bot_configs', JSON.stringify(config.bots));
+                        renderBotConfigs(config.bots);
+                    }
+
+                    showStatus('Configuration imported successfully!', 'success');
+                } catch (error) {
+                    showStatus('Error importing configuration: ' + error.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function goToApp() {
+            window.location.href = 'index.html';
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.innerHTML = message;
+            statusDiv.className = `status-message status-${type}`;
+
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+                statusDiv.className = '';
+            }, 5000);
+        }
+
+        // Load config on page load
+        loadConfig();
+    </script>
+</body>
+</html>

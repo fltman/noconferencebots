@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoConference - AI Bot Conference System</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Marked.js for markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with controls -->
+        <header class="control-panel">
+            <h1>NoConference AI System</h1>
+            <div class="controls">
+                <div class="cycle-control">
+                    <label>Discussion Cycle (min): <input type="number" id="discussion-time" value="5" min="1" max="60"></label>
+                    <label>Debrief Cycle (min): <input type="number" id="debrief-time" value="3" min="1" max="30"></label>
+                    <label style="font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                        <input type="checkbox" id="auto-cycle" checked style="margin: 0;">
+                        🔄 Auto-start next cycle
+                    </label>
+                    <button id="start-cycle" class="btn-primary">Start Cycle</button>
+                    <button id="stop-cycle" class="btn-danger" disabled>Stop Cycle</button>
+                </div>
+                <div class="timer-display">
+                    <span class="timer-label">Cycle Timer:</span>
+                    <span id="timer" class="timer">--:--</span>
+                    <span id="cycle-phase" class="phase-label">Idle</span>
+                </div>
+                <div style="margin-left: 20px;">
+                    <button id="kiosk-mode" class="btn-secondary" style="font-size: 13px;">🖥️ Fullscreen Mode</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main layout with sidebar -->
+        <div class="main-layout">
+            <!-- Sidebar with Inbox and Observer -->
+            <aside class="sidebar">
+                <div class="inbox-section">
+                    <h2>📥 Topic Inbox</h2>
+                    <div class="inbox-controls">
+                        <textarea id="new-topic" placeholder="Add a topic..." rows="3"></textarea>
+                        <button id="add-topic" class="btn-secondary">Add Topic</button>
+                        <div style="margin-top: 8px;">
+                            <label for="microphone-select" style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px;">🎤 Microphone:</label>
+                            <select id="microphone-select" style="width: 100%; padding: 6px; background: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; margin-bottom: 8px;">
+                                <option value="">Default Microphone</option>
+                            </select>
+                            <label style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                                <input type="checkbox" id="save-audio-debug" style="margin: 0;">
+                                💾 Save audio files for debugging
+                            </label>
+                        </div>
+                        <button id="toggle-observer" class="btn-secondary">
+                            <span id="observer-status">🔴</span> Observer Bot
+                        </button>
+                        <button id="test-speech" class="btn-secondary" style="font-size: 11px;">🎤 Test Mic</button>
+                        <button id="clear-history" class="btn-secondary" style="font-size: 11px;">🗑️ Clear History</button>
+
+                        <!-- Audio Visualizer -->
+                        <div id="audio-visualizer" style="display: none; margin-top: 10px; margin-bottom: 10px; padding: 12px; background: rgba(30, 30, 40, 0.95); border: 2px solid rgba(34, 197, 94, 0.5); border-radius: 8px; box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);">
+                            <div style="font-size: 12px; color: #22c55e; margin-bottom: 8px; font-weight: 600; text-align: center;">🎤 Live Audio Monitor</div>
+                            <div class="visualizer-bars" style="height: 50px; display: flex; align-items: flex-end; gap: 4px; justify-content: space-between; background: rgba(0, 0, 0, 0.3); padding: 5px; border-radius: 4px;">
+                                <div class="visualizer-bar" id="bar1" style="flex: 1; background: linear-gradient(to top, #22c55e, #16a34a); border-radius: 3px 3px 0 0; height: 10%; min-height: 3px; transition: height 0.1s ease-out; box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);"></div>
+                                <div class="visualizer-bar" id="bar2" style="flex: 1; background: linear-gradient(to top, #22c55e, #16a34a); border-radius: 3px 3px 0 0; height: 10%; min-height: 3px; transition: height 0.1s ease-out; box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);"></div>
+                                <div class="visualizer-bar" id="bar3" style="flex: 1; background: linear-gradient(to top, #22c55e, #16a34a); border-radius: 3px 3px 0 0; height: 10%; min-height: 3px; transition: height 0.1s ease-out; box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);"></div>
+                                <div class="visualizer-bar" id="bar4" style="flex: 1; background: linear-gradient(to top, #22c55e, #16a34a); border-radius: 3px 3px 0 0; height: 10%; min-height: 3px; transition: height 0.1s ease-out; box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);"></div>
+                                <div class="visualizer-bar" id="bar5" style="flex: 1; background: linear-gradient(to top, #22c55e, #16a34a); border-radius: 3px 3px 0 0; height: 10%; min-height: 3px; transition: height 0.1s ease-out; box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);"></div>
+                                <div class="visualizer-bar" id="bar6" style="flex: 1; background: linear-gradient(to top, #22c55e, #16a34a); border-radius: 3px 3px 0 0; height: 10%; min-height: 3px; transition: height 0.1s ease-out; box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);"></div>
+                                <div class="visualizer-bar" id="bar7" style="flex: 1; background: linear-gradient(to top, #22c55e, #16a34a); border-radius: 3px 3px 0 0; height: 10%; min-height: 3px; transition: height 0.1s ease-out; box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);"></div>
+                                <div class="visualizer-bar" id="bar8" style="flex: 1; background: linear-gradient(to top, #22c55e, #16a34a); border-radius: 3px 3px 0 0; height: 10%; min-height: 3px; transition: height 0.1s ease-out; box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);"></div>
+                            </div>
+                            <div style="font-size: 11px; color: #22c55e; margin-top: 10px; text-align: center; font-weight: 700; letter-spacing: 0.5px;" id="audio-level-text">0%</div>
+                        </div>
+                    </div>
+                    <div id="inbox-list" class="inbox-list">
+                        <!-- Topics will appear here -->
+                    </div>
+                </div>
+
+                <!-- Observer Transcript Display -->
+                <div class="transcript-section" id="transcript-section" style="display: none;">
+                    <h3>🎤 Observer Transcripts</h3>
+                    <div class="transcript-display">
+                        <div class="transcript-tabs">
+                            <button id="tab-full" class="transcript-tab active" onclick="noConference.showTranscriptTab('full')">Full Transcript</button>
+                            <button id="tab-context" class="transcript-tab" onclick="noConference.showTranscriptTab('context')">Bot Context</button>
+                        </div>
+                        <div id="transcript-full" class="transcript-content">
+                            <p style="color: var(--text-secondary); font-style: italic; font-size: 12px;">No transcripts yet. Start the Observer Bot to record.</p>
+                        </div>
+                        <div id="transcript-context" class="transcript-content" style="display: none;">
+                            <p style="color: var(--text-secondary); font-style: italic; font-size: 12px;">Context will appear here when transcripts are available.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bot-roster">
+                    <h3>🤖 Active Bots</h3>
+                    <div id="bot-list" class="bot-list">
+                        <!-- Bot list will appear here -->
+                    </div>
+                    <button id="configure-bots" class="btn-secondary" style="width: 100%; margin-top: 10px; font-size: 11px;">⚙️ Configure Bots</button>
+                </div>
+            </aside>
+
+            <!-- Conference rooms area -->
+            <main class="conference-area">
+                <!-- Main Conference Room -->
+                <section class="main-room">
+                    <div class="room-header">
+                        <h2>🏛️ Main Conference Room</h2>
+                        <div class="room-status">
+                            <span id="main-room-status">Waiting for cycle...</span>
+                        </div>
+                    </div>
+
+                    <div class="room-content">
+                        <div class="moderator-area">
+                            <div class="moderator-avatar">👨‍💼</div>
+                            <div class="moderator-info">
+                                <strong>Main Moderator</strong>
+                                <p id="moderator-action">Ready to facilitate</p>
+                            </div>
+                        </div>
+
+                        <div class="participants-area">
+                            <h3>Participants</h3>
+                            <div id="main-participants" class="participants-grid">
+                                <!-- Participant bots will appear here -->
+                            </div>
+                        </div>
+
+                        <div class="main-conversation">
+                            <h3>💬 Debrief Conversation</h3>
+                            <div id="main-conversation" class="main-conversation-content">
+                                <p class="placeholder">Debrief discussion will appear here when cycle starts...</p>
+                            </div>
+                        </div>
+
+                        <div class="whiteboard">
+                            <h3>📋 Main Whiteboard</h3>
+                            <div id="main-whiteboard" class="whiteboard-content">
+                                <p class="placeholder">Insights from debrief sessions will appear here...</p>
+                            </div>
+                            <button id="export-main-whiteboard" class="btn-secondary">Export to File</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Breakout Rooms Grid -->
+                <section class="breakout-rooms">
+                    <h2>📚 Discussion Rooms</h2>
+                    <div class="rooms-grid">
+                        <!-- Room 1 -->
+                        <div class="breakout-room" data-room="1">
+                            <div class="room-header">
+                                <h3>Room 1</h3>
+                                <span class="room-topic" id="topic-1">No topic assigned</span>
+                            </div>
+                            <div class="room-moderator">
+                                <span class="moderator-icon">🎯</span>
+                                <span>Moderator 1</span>
+                            </div>
+                            <div class="room-participants" id="participants-1">
+                                <p class="placeholder">Waiting for participants...</p>
+                            </div>
+                            <div class="room-conversation">
+                                <strong>💬 Conversation:</strong>
+                                <div id="conversation-1" class="room-conversation-content">
+                                    <p class="placeholder">Discussion will appear here...</p>
+                                </div>
+                            </div>
+                            <div class="mini-whiteboard">
+                                <strong>📝 Insights:</strong>
+                                <div id="whiteboard-1" class="mini-whiteboard-content">
+                                    <p class="placeholder">Key insights will appear here...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Room 2 -->
+                        <div class="breakout-room" data-room="2">
+                            <div class="room-header">
+                                <h3>Room 2</h3>
+                                <span class="room-topic" id="topic-2">No topic assigned</span>
+                            </div>
+                            <div class="room-moderator">
+                                <span class="moderator-icon">🎯</span>
+                                <span>Moderator 2</span>
+                            </div>
+                            <div class="room-participants" id="participants-2">
+                                <p class="placeholder">Waiting for participants...</p>
+                            </div>
+                            <div class="room-conversation">
+                                <strong>💬 Conversation:</strong>
+                                <div id="conversation-2" class="room-conversation-content">
+                                    <p class="placeholder">Discussion will appear here...</p>
+                                </div>
+                            </div>
+                            <div class="mini-whiteboard">
+                                <strong>📝 Insights:</strong>
+                                <div id="whiteboard-2" class="mini-whiteboard-content">
+                                    <p class="placeholder">Key insights will appear here...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Room 3 -->
+                        <div class="breakout-room" data-room="3">
+                            <div class="room-header">
+                                <h3>Room 3</h3>
+                                <span class="room-topic" id="topic-3">No topic assigned</span>
+                            </div>
+                            <div class="room-moderator">
+                                <span class="moderator-icon">🎯</span>
+                                <span>Moderator 3</span>
+                            </div>
+                            <div class="room-participants" id="participants-3">
+                                <p class="placeholder">Waiting for participants...</p>
+                            </div>
+                            <div class="room-conversation">
+                                <strong>💬 Conversation:</strong>
+                                <div id="conversation-3" class="room-conversation-content">
+                                    <p class="placeholder">Discussion will appear here...</p>
+                                </div>
+                            </div>
+                            <div class="mini-whiteboard">
+                                <strong>📝 Insights:</strong>
+                                <div id="whiteboard-3" class="mini-whiteboard-content">
+                                    <p class="placeholder">Key insights will appear here...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Room 4 -->
+                        <div class="breakout-room" data-room="4">
+                            <div class="room-header">
+                                <h3>Room 4</h3>
+                                <span class="room-topic" id="topic-4">No topic assigned</span>
+                            </div>
+                            <div class="room-moderator">
+                                <span class="moderator-icon">🎯</span>
+                                <span>Moderator 4</span>
+                            </div>
+                            <div class="room-participants" id="participants-4">
+                                <p class="placeholder">Waiting for participants...</p>
+                            </div>
+                            <div class="room-conversation">
+                                <strong>💬 Conversation:</strong>
+                                <div id="conversation-4" class="room-conversation-content">
+                                    <p class="placeholder">Discussion will appear here...</p>
+                                </div>
+                            </div>
+                            <div class="mini-whiteboard">
+                                <strong>📝 Insights:</strong>
+                                <div id="whiteboard-4" class="mini-whiteboard-content">
+                                    <p class="placeholder">Key insights will appear here...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- Activity Log -->
+        <footer class="activity-log">
+            <h3>📊 Activity Log</h3>
+            <div id="activity-log" class="log-content">
+                <p class="log-entry">System initialized. Add topics to inbox and start a cycle.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Bot Configuration Modal -->
+    <div id="bot-config-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Configure Bots</h2>
+                <button id="close-bot-config" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body" id="bot-config-list">
+                <!-- Bot configs will be rendered here -->
+            </div>
+            <div class="modal-footer">
+                <button id="save-bot-configs" class="btn-primary">Save Configurations</button>
+                <button id="reset-bot-configs" class="btn-secondary">Reset to Defaults</button>
+                <button id="cancel-bot-config" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
