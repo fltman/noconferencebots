@@ -1,5 +1,7 @@
 # NoConference - AI Bot Conference System
 
+[![Support me on Patreon](https://img.shields.io/badge/Patreon-Support%20my%20work-FF424D?style=flat&logo=patreon&logoColor=white)](https://www.patreon.com/AndersBjarby)
+
 An innovative web-based conference system where AI bots autonomously participate in structured discussions, debate topics, and synthesize insights.
 
 ## 🌟 Features
